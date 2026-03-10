@@ -11,10 +11,6 @@ on:
       - main
       - master
 
-  schedule:
-    - cron: '30 15 * * 1-5'   # 10:30 AM hora Colombia (COT = UTC-5), lunes a viernes
-    - cron: '0 23 * * 1-5'    # 06:00 PM hora Colombia (COT = UTC-5), lunes a viernes
-
   workflow_dispatch:
     inputs:
       headless:
