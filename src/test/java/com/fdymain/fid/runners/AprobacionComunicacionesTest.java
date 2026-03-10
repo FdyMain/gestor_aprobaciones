@@ -6,6 +6,7 @@ import com.fdymain.fid.pages.LogoutPage;
 import com.fdymain.fid.playwright_config.EvidenceManager;
 import com.fdymain.fid.utils.Constants;
 import com.fdymain.fid.utils.ExcelManager;
+import com.fdymain.fid.utils.EmailNotifier;
 import com.fdymain.fid.utils.ResultadoExport;
 import com.fdymain.fid.utils.WhatsAppNotifier;
 import com.microsoft.playwright.*;
@@ -226,6 +227,24 @@ public class AprobacionComunicacionesTest {
                 log("No se pudo enviar WhatsApp: " + e.getMessage());
             }
 
+            // ===== NOTIFICACIÓN EMAIL =====
+
+            try {
+
+                EmailNotifier.enviarReporte(
+                        fechaInicio,
+                        obtenerFecha(),
+                        aprobadas,
+                        fallidas,
+                        procesadas,
+                        calcularDuracion()
+                );
+
+            } catch (Exception e) {
+
+                log("No se pudo enviar email: " + e.getMessage());
+            }
+
             log("Excel actualizado: " + excelManager.getExcelPath().toAbsolutePath());
 
         } catch (Exception e) {
@@ -306,6 +325,22 @@ public class AprobacionComunicacionesTest {
         } catch (Exception ex) {
 
             log("No se pudo exportar resultado de error: " + ex.getMessage());
+        }
+
+        try {
+
+            EmailNotifier.enviarReporte(
+                    fechaInicio != null ? fechaInicio : obtenerFecha(),
+                    obtenerFecha(),
+                    aprobadas,
+                    fallidas + 1,
+                    procesadas,
+                    calcularDuracion()
+            );
+
+        } catch (Exception ex) {
+
+            log("No se pudo enviar email de error: " + ex.getMessage());
         }
     }
 }
