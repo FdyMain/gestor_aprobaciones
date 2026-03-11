@@ -25,7 +25,10 @@ on:
 jobs:
   robot-bpm:
     name: Ejecutar Robot BPM
-    runs-on: ubuntu-latest
+
+    # 👇 ahora se ejecuta dentro de tu red
+    runs-on: [self-hosted, linux]
+
     timeout-minutes: 60
 
     steps:
@@ -37,7 +40,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ─────────────────────────────────────────
-      # 2. Entorno Java 17 con caché de Maven
+      # 2. Configurar Java
       # ─────────────────────────────────────────
       - name: Configurar Java 17
         uses: actions/setup-java@v4
@@ -47,15 +50,26 @@ jobs:
           cache: maven
 
       # ─────────────────────────────────────────
-      # 3. Resolver dependencias y compilar
+      # 3. Compilar proyecto
       # ─────────────────────────────────────────
-      - name: Compilar y resolver dependencias
+      - name: Compilar dependencias
         run: mvn -B test-compile -q
 
       # ─────────────────────────────────────────
-      # 4. Instalar dependencias Linux requeridas
+      # 4. Cache Playwright browsers
       # ─────────────────────────────────────────
-      - name: Instalar dependencias Linux para Playwright
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # ─────────────────────────────────────────
+      # 5. Instalar dependencias Linux
+      # ─────────────────────────────────────────
+      - name: Instalar dependencias Linux
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -77,13 +91,13 @@ jobs:
             gstreamer1.0-libav
 
       # ─────────────────────────────────────────
-      # 5. Instalar Playwright browsers
+      # 6. Instalar Chromium
       # ─────────────────────────────────────────
-      - name: Instalar navegadores Playwright
+      - name: Instalar Playwright Chromium
         run: mvn -B exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chromium"
 
       # ─────────────────────────────────────────
-      # 5.1 Probar conectividad a la aplicación
+      # 7. Probar conectividad a la aplicación
       # ─────────────────────────────────────────
       - name: Probar conectividad
         run: |
@@ -91,7 +105,7 @@ jobs:
           curl -I ${{ secrets.APP_LOGIN_URL }}
 
       # ─────────────────────────────────────────
-      # 6. Ejecutar el robot
+      # 8. Ejecutar el robot
       # ─────────────────────────────────────────
       - name: Ejecutar Robot
         run: mvn -B test -Dheadless=${{ inputs.headless || 'true' }} -Dfile.encoding=UTF-8
@@ -106,9 +120,9 @@ jobs:
           WA_API_URL:         ${{ secrets.WA_API_URL }}
 
       # ─────────────────────────────────────────
-      # 7. Subir artefactos (siempre, incluso si falla)
+      # 9. Subir evidencias
       # ─────────────────────────────────────────
-      - name: Subir evidencias (screenshots, videos, traces)
+      - name: Subir evidencias
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -127,7 +141,7 @@ jobs:
           retention-days: 30
 
       # ─────────────────────────────────────────
-      # 8. Leer resultado.properties del robot
+      # 10. Leer resultado.properties
       # ─────────────────────────────────────────
       - name: Leer resultados del robot
         if: always()
@@ -147,7 +161,7 @@ jobs:
           fi
 
       # ─────────────────────────────────────────
-      # 9. Generar email HTML con datos reales
+      # 11. Generar email HTML
       # ─────────────────────────────────────────
       - name: Generar email HTML
         if: always()
@@ -168,7 +182,7 @@ jobs:
           sed -i "s|{{RUN_URL}}|${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|g" email-final.html
 
       # ─────────────────────────────────────────
-      # 10. Enviar notificación por email
+      # 12. Enviar email
       # ─────────────────────────────────────────
       - name: Enviar notificación por email
         if: always()
@@ -185,24 +199,3 @@ jobs:
           html_body: file://email-final.html
           ignore_cert: false
           convert_markdown: false
-
-      # ─────────────────────────────────────────
-      # 11. Resumen del job en la UI de Actions
-      # ─────────────────────────────────────────
-      - name: Resumen de ejecución
-        if: always()
-        run: |
-          echo "## Robot BPM — Resultado" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Run | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rama | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Headless | \`${{ inputs.headless || 'true' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Aprobadas | **${ROBOT_APROBADAS}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fallidas | **${ROBOT_FALLIDAS}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| Total procesadas | **${ROBOT_PROCESADAS}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| Duración | ${ROBOT_DURACION} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Estado | **${ROBOT_ESTADO}** |" >> $GITHUB_STEP_SUMMARY
