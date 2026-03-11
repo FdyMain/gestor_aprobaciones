@@ -83,6 +83,14 @@ jobs:
         run: mvn -B exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chromium"
 
       # ─────────────────────────────────────────
+      # 5.1 Probar conectividad a la aplicación
+      # ─────────────────────────────────────────
+      - name: Probar conectividad
+        run: |
+          echo "Probando acceso a la URL..."
+          curl -I ${{ secrets.APP_LOGIN_URL }}
+
+      # ─────────────────────────────────────────
       # 6. Ejecutar el robot
       # ─────────────────────────────────────────
       - name: Ejecutar Robot
