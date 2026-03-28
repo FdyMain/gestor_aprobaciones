@@ -254,6 +254,17 @@ public class AprobacionComunicacionesPage {
         }
     }
 
+    // ================= OTROS CÓDIGOS =================
+
+    public void acumularOtrosCodigos(Map<String, Integer> mapa) {
+        page.locator(GRID_ROWS).all().forEach(row -> {
+            String id = safeText(row.locator(COL_ID_PROCESO));
+            if (!id.isBlank() && !"500".equals(id)) {
+                mapa.merge(id, 1, Integer::sum);
+            }
+        });
+    }
+
     // ================= BÚSQUEDA =================
 
     public void esperarGrid() {

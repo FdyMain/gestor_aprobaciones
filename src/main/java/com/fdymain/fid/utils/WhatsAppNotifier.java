@@ -9,13 +9,10 @@ import java.nio.charset.StandardCharsets;
 
 public class WhatsAppNotifier {
 
-    /**
-     * Envía el resultado del robot usando el template aprobado en Meta
-     */
     public static void enviarResultadoRobot(
             String fecha,
-            int aprobadas,
-            int fallidas,
+            int procesadas,
+            int reintentos,
             String duracion) {
 
         try {
@@ -42,6 +39,9 @@ public class WhatsAppNotifier {
                     "application/json"
             );
 
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
+
             conn.setDoOutput(true);
 
             String body =
@@ -52,16 +52,16 @@ public class WhatsAppNotifier {
                             + "\"template\":{"
                             + "\"name\":\"resultado_robot_bpm\","
                             + "\"language\":{"
-                            + "\"code\":\"es_419\""
+                            + "\"code\":\"es\""
                             + "},"
                             + "\"components\":["
                             + "{"
                             + "\"type\":\"body\","
                             + "\"parameters\":["
-                            + "{ \"type\":\"text\", \"text\":\"" + fecha + "\" },"
-                            + "{ \"type\":\"text\", \"text\":\"" + aprobadas + "\" },"
-                            + "{ \"type\":\"text\", \"text\":\"" + fallidas + "\" },"
-                            + "{ \"type\":\"text\", \"text\":\"" + duracion + "\" }"
+                            + "{ \"type\":\"text\", \"parameter_name\":\"fecha\", \"text\":\"" + fecha + "\" },"
+                            + "{ \"type\":\"text\", \"parameter_name\":\"procesadas\", \"text\":\"" + procesadas + "\" },"
+                            + "{ \"type\":\"text\", \"parameter_name\":\"reintentos\", \"text\":\"" + reintentos + "\" },"
+                            + "{ \"type\":\"text\", \"parameter_name\":\"duracion\", \"text\":\"" + duracion + "\" }"
                             + "]"
                             + "}"
                             + "]"
@@ -97,7 +97,7 @@ public class WhatsAppNotifier {
 
             System.out.println("WhatsApp API response: " + response);
 
-            if (responseCode == 200) {
+            if (responseCode >= 200 && responseCode < 300) {
 
                 System.out.println("✅ Notificación WhatsApp enviada correctamente");
 

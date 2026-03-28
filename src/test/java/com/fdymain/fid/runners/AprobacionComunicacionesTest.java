@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -29,8 +30,10 @@ public class AprobacionComunicacionesTest {
     private ExcelManager excelManager;
 
     private int aprobadas  = 0;
-    private int fallidas   = 0;
+    private int reintentos = 0;
     private int procesadas = 0;
+
+    private Map<String, Integer> otrosCodigos = new LinkedHashMap<>();
 
     private long   startTime;
     private String fechaInicio;
@@ -148,7 +151,7 @@ public class AprobacionComunicacionesTest {
                     if (aprobado) {
                         aprobadas++;
                     } else {
-                        fallidas++;
+                        reintentos++;
                     }
 
                     datos.put("estado",
@@ -182,6 +185,7 @@ public class AprobacionComunicacionesTest {
                 } else {
 
                     log("No quedan páginas");
+                    aprobPage.acumularOtrosCodigos(otrosCodigos);
                     break;
                 }
             }
@@ -203,9 +207,11 @@ public class AprobacionComunicacionesTest {
                         fechaInicio,
                         obtenerFecha(),
                         aprobadas,
-                        fallidas,
+                        reintentos,
                         procesadas,
-                        calcularDuracion()
+                        calcularDuracion(),
+                        "EXITOSO",
+                        otrosCodigos
                 );
             } catch (Exception e) {
                 log("No se pudo exportar resultado: " + e.getMessage());
@@ -218,7 +224,7 @@ public class AprobacionComunicacionesTest {
                 WhatsAppNotifier.enviarResultadoRobot(
                         obtenerFecha(),
                         aprobadas,
-                        fallidas,
+                        reintentos,
                         calcularDuracion()
                 );
 
@@ -235,9 +241,11 @@ public class AprobacionComunicacionesTest {
                         fechaInicio,
                         obtenerFecha(),
                         aprobadas,
-                        fallidas,
+                        reintentos,
                         procesadas,
-                        calcularDuracion()
+                        calcularDuracion(),
+                        "EXITOSO",
+                        otrosCodigos
                 );
 
             } catch (Exception e) {
@@ -302,7 +310,7 @@ public class AprobacionComunicacionesTest {
             WhatsAppNotifier.enviarResultadoRobot(
                     obtenerFecha(),
                     aprobadas,
-                    fallidas + 1,
+                    reintentos + 1,
                     calcularDuracion()
             );
 
@@ -317,9 +325,11 @@ public class AprobacionComunicacionesTest {
                     fechaInicio != null ? fechaInicio : obtenerFecha(),
                     obtenerFecha(),
                     aprobadas,
-                    fallidas + 1,
+                    reintentos + 1,
                     procesadas,
-                    calcularDuracion()
+                    calcularDuracion(),
+                    "CON ERRORES",
+                    otrosCodigos
             );
 
         } catch (Exception ex) {
@@ -333,9 +343,11 @@ public class AprobacionComunicacionesTest {
                     fechaInicio != null ? fechaInicio : obtenerFecha(),
                     obtenerFecha(),
                     aprobadas,
-                    fallidas + 1,
+                    reintentos + 1,
                     procesadas,
-                    calcularDuracion()
+                    calcularDuracion(),
+                    "CON ERRORES",
+                    otrosCodigos
             );
 
         } catch (Exception ex) {

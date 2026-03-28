@@ -3,6 +3,8 @@ package com.fdymain.fid.utils;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ResultadoExport {
 
@@ -12,20 +14,27 @@ public class ResultadoExport {
             String fechaInicio,
             String fechaFin,
             int aprobadas,
-            int fallidas,
+            int reintentos,
             int procesadas,
-            String duracion) throws Exception {
+            String duracion,
+            String estado,
+            Map<String, Integer> otrosCodigos) throws Exception {
 
-        String estado = (fallidas == 0) ? "EXITOSO" : "CON ERRORES";
+        String otrosStr = otrosCodigos == null || otrosCodigos.isEmpty()
+                ? ""
+                : otrosCodigos.entrySet().stream()
+                        .map(e -> e.getKey() + ":" + e.getValue())
+                        .collect(Collectors.joining(","));
 
         String contenido =
-                "aprobadas="   + aprobadas   + "\n" +
-                "fallidas="    + fallidas    + "\n" +
-                "procesadas="  + procesadas  + "\n" +
-                "duracion="    + duracion    + "\n" +
-                "fechaInicio=" + fechaInicio + "\n" +
-                "fechaFin="    + fechaFin    + "\n" +
-                "estado="      + estado;
+                "aprobadas="    + aprobadas   + "\n" +
+                "reintentos="   + reintentos  + "\n" +
+                "procesadas="   + procesadas  + "\n" +
+                "duracion="     + duracion    + "\n" +
+                "fechaInicio="  + fechaInicio + "\n" +
+                "fechaFin="     + fechaFin    + "\n" +
+                "estado="       + estado      + "\n" +
+                "otros_codigos=" + otrosStr;
 
         Files.writeString(Paths.get(OUTPUT_FILE), contenido, StandardCharsets.UTF_8);
     }

@@ -151,13 +151,14 @@ jobs:
               echo "ROBOT_${key^^}=${value}" >> $GITHUB_ENV
             done < resultado.properties
           else
-            echo "ROBOT_ESTADO=SIN DATOS"   >> $GITHUB_ENV
-            echo "ROBOT_APROBADAS=0"        >> $GITHUB_ENV
-            echo "ROBOT_FALLIDAS=0"         >> $GITHUB_ENV
-            echo "ROBOT_PROCESADAS=0"       >> $GITHUB_ENV
-            echo "ROBOT_DURACION=N/A"       >> $GITHUB_ENV
-            echo "ROBOT_FECHAINICIO=N/A"    >> $GITHUB_ENV
-            echo "ROBOT_FECHAFIN=N/A"       >> $GITHUB_ENV
+            echo "ROBOT_ESTADO=SIN DATOS"    >> $GITHUB_ENV
+            echo "ROBOT_APROBADAS=0"         >> $GITHUB_ENV
+            echo "ROBOT_REINTENTOS=0"        >> $GITHUB_ENV
+            echo "ROBOT_PROCESADAS=0"        >> $GITHUB_ENV
+            echo "ROBOT_DURACION=N/A"        >> $GITHUB_ENV
+            echo "ROBOT_FECHAINICIO=N/A"     >> $GITHUB_ENV
+            echo "ROBOT_FECHAFIN=N/A"        >> $GITHUB_ENV
+            echo "ROBOT_OTROS_CODIGOS="      >> $GITHUB_ENV
           fi
 
       # ─────────────────────────────────────────
@@ -167,8 +168,7 @@ jobs:
         if: always()
         run: |
           cp .github/email-template.html email-final.html
-          sed -i "s|{{APROBADAS}}|${ROBOT_APROBADAS}|g"      email-final.html
-          sed -i "s|{{FALLIDAS}}|${ROBOT_FALLIDAS}|g"        email-final.html
+          sed -i "s|{{REINTENTOS}}|${ROBOT_REINTENTOS}|g"    email-final.html
           sed -i "s|{{PROCESADAS}}|${ROBOT_PROCESADAS}|g"    email-final.html
           sed -i "s|{{DURACION}}|${ROBOT_DURACION}|g"        email-final.html
           sed -i "s|{{FECHA_INICIO}}|${ROBOT_FECHAINICIO}|g" email-final.html
@@ -180,6 +180,23 @@ jobs:
           sed -i "s|{{BRANCH}}|${{ github.ref_name }}|g"     email-final.html
           sed -i "s|{{COMMIT}}|${{ github.sha }}|g"          email-final.html
           sed -i "s|{{RUN_URL}}|${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|g" email-final.html
+
+          # Generar sección de otros códigos pendientes
+          if [ -n "${ROBOT_OTROS_CODIGOS}" ]; then
+            OTROS_HTML="<tr><td style=\"padding:24px 32px 0;\"><p style=\"margin:0 0 12px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;\">Otros c&#xF3;digos pendientes por revisar</p><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;\"><tr style=\"background-color:#f1f5f9;\"><th style=\"padding:10px 20px;font-size:12px;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;\">C&#xF3;digo</th><th style=\"padding:10px 20px;font-size:12px;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;\">Cantidad</th></tr>"
+            IFS=',' read -ra PARES <<< "${ROBOT_OTROS_CODIGOS}"
+            for par in "${PARES[@]}"; do
+              codigo="${par%%:*}"
+              cantidad="${par##*:}"
+              OTROS_HTML+="<tr><td style=\"padding:10px 20px;font-size:13px;color:#0f172a;border-bottom:1px solid #e2e8f0;\">${codigo}</td><td style=\"padding:10px 20px;font-size:13px;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;\">${cantidad}</td></tr>"
+            done
+            OTROS_HTML+="</table></td></tr>"
+            # Escapar para sed (reemplazar / por \/)
+            OTROS_HTML_ESC=$(printf '%s\n' "$OTROS_HTML" | sed 's/[&/\]/\\&/g; s/$/\\n/' | tr -d '\n')
+            sed -i "s|{{OTROS_CODIGOS_SECTION}}|${OTROS_HTML_ESC}|g" email-final.html
+          else
+            sed -i "s|{{OTROS_CODIGOS_SECTION}}||g" email-final.html
+          fi
 
       # ─────────────────────────────────────────
       # 12. Enviar email
