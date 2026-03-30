@@ -223,7 +223,7 @@ public class AprobacionComunicacionesTest {
 
                 WhatsAppNotifier.enviarResultadoRobot(
                         obtenerFecha(),
-                        aprobadas,
+                        procesadas,
                         reintentos,
                         calcularDuracion()
                 );
@@ -309,7 +309,7 @@ public class AprobacionComunicacionesTest {
 
             WhatsAppNotifier.enviarResultadoRobot(
                     obtenerFecha(),
-                    aprobadas,
+                    procesadas,
                     reintentos + 1,
                     calcularDuracion()
             );

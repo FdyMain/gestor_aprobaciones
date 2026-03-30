@@ -65,7 +65,18 @@ public class AprobacionComunicacionesPage {
                         .setName("Abrir bandeja de tareas")
         ).click();
 
-        page.waitForSelector(GRID_ROWS);
+        // Esperar el panel del grid (presente aunque la bandeja esté vacía)
+        page.waitForSelector("#BPM_ALL_TASKS-panel");
+
+        // Intentar filas con timeout corto — bandeja vacía es un estado válido
+        try {
+            page.waitForSelector(GRID_ROWS,
+                    new Page.WaitForSelectorOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(5000));
+        } catch (com.microsoft.playwright.TimeoutError e) {
+            // Bandeja vacía — sin solicitudes pendientes
+        }
     }
 
     // ================= PAGINACIÓN =================
@@ -76,13 +87,16 @@ public class AprobacionComunicacionesPage {
 
         if (last.isVisible()) {
 
-            String disabled = last.getAttribute("aria-disabled");
+            try {
+                String disabled = last.getAttribute("aria-disabled",
+                        new Locator.GetAttributeOptions().setTimeout(5000));
 
-            if (!"true".equals(disabled)) {
-
-                last.click();
-
-                esperarGridActualizar();
+                if (!"true".equals(disabled)) {
+                    last.click();
+                    esperarGridActualizar();
+                }
+            } catch (com.microsoft.playwright.TimeoutError e) {
+                // Botón no disponible — bandeja vacía o una sola página
             }
         }
     }
@@ -91,9 +105,14 @@ public class AprobacionComunicacionesPage {
 
         Locator prev = page.locator(BTN_PREVIOUS);
 
-        String disabled = prev.getAttribute("aria-disabled");
-
-        return !"true".equals(disabled);
+        try {
+            String disabled = prev.getAttribute("aria-disabled",
+                    new Locator.GetAttributeOptions().setTimeout(5000));
+            return !"true".equals(disabled);
+        } catch (com.microsoft.playwright.TimeoutError e) {
+            // Botón no existe — no hay paginación (bandeja vacía o una sola página)
+            return false;
+        }
     }
 
     public void irPaginaAnterior() {
@@ -269,7 +288,18 @@ public class AprobacionComunicacionesPage {
 
     public void esperarGrid() {
 
-        page.waitForSelector(GRID_ROWS);
+        // Esperar el panel del grid (siempre presente, incluso si está vacío)
+        page.waitForSelector("#BPM_ALL_TASKS-panel");
+
+        // Esperar filas con timeout corto — si no hay filas la bandeja está vacía, lo cual es válido
+        try {
+            page.waitForSelector(GRID_ROWS,
+                    new Page.WaitForSelectorOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(5000));
+        } catch (com.microsoft.playwright.TimeoutError e) {
+            // Bandeja vacía — no hay filas que esperar
+        }
 
         page.waitForTimeout(800);
     }
@@ -287,10 +317,15 @@ public class AprobacionComunicacionesPage {
 
         page.waitForLoadState(LoadState.NETWORKIDLE);
 
-        page.waitForSelector(
-                GRID_ROWS,
-                new Page.WaitForSelectorOptions()
-                        .setState(WaitForSelectorState.VISIBLE)
-        );
+        try {
+            page.waitForSelector(
+                    GRID_ROWS,
+                    new Page.WaitForSelectorOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(10000)
+            );
+        } catch (com.microsoft.playwright.TimeoutError e) {
+            // Bandeja vacía tras actualización — válido
+        }
     }
 }
