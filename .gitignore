@@ -15,6 +15,10 @@ target/
 /allure-results/
 /allure-report/
 
+# resultados del bot
+/src/main/resources/
+*.xlsx
+
 # archivos pesados
 *.zip
 *.webm
