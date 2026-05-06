@@ -14,7 +14,6 @@ public class ResultadoExport {
             String fechaInicio,
             String fechaFin,
             int aprobadas,
-            int reintentos,
             int procesadas,
             String duracion,
             String estado,
@@ -28,7 +27,6 @@ public class ResultadoExport {
 
         String contenido =
                 "aprobadas="    + aprobadas   + "\n" +
-                "reintentos="   + reintentos  + "\n" +
                 "procesadas="   + procesadas  + "\n" +
                 "duracion="     + duracion    + "\n" +
                 "fechaInicio="  + fechaInicio + "\n" +

@@ -7,6 +7,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
+import com.microsoft.playwright.options.WaitUntilState;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -210,7 +211,10 @@ public class AprobacionComunicacionesPage {
 
             System.out.println(">>> Esperando iframe");
 
-            page.waitForSelector("iframe");
+            page.waitForSelector("iframe",
+                    new Page.WaitForSelectorOptions()
+                            .setState(WaitForSelectorState.ATTACHED)
+                            .setTimeout(10000));
             page.waitForLoadState(LoadState.NETWORKIDLE);
 
             FrameLocator iframe = page.frameLocator("iframe").first();
@@ -249,14 +253,36 @@ public class AprobacionComunicacionesPage {
 
             System.out.println(">>> Escribiendo comentario");
 
-            iframe.getByLabel("Comentarios de aprobación *")
-                    .fill("Aprobado");
+            Locator campoComentario = iframe.getByLabel("Comentarios de aprobación *");
+            campoComentario.click();
+            campoComentario.selectText();
+            campoComentario.press("Delete");
+            campoComentario.pressSequentially("Aprobado", new Locator.PressSequentiallyOptions().setDelay(150));
 
-            System.out.println(">>> Click botón aprobar");
+            System.out.println(">>> Esperando que botón aprobar se habilite");
 
             Locator btnAprobar = page.getByLabel("fas fa-check-double");
-            btnAprobar.waitFor();
-            btnAprobar.click();
+            btnAprobar.waitFor(new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.ATTACHED)
+                    .setTimeout(10000));
+
+            // El botón puede estar visible pero deshabilitado mientras la app valida el formulario
+            long deadline = System.currentTimeMillis() + 60000;
+            while (System.currentTimeMillis() < deadline) {
+                if (btnAprobar.isEnabled()) break;
+                System.out.println(">>> Botón deshabilitado, esperando...");
+                page.waitForTimeout(1000);
+            }
+
+            if (!btnAprobar.isEnabled()) {
+                System.out.println(">>> Botón nunca se habilitó — recargando URL");
+                page.reload(new Page.ReloadOptions().setWaitUntil(WaitUntilState.NETWORKIDLE));
+                page.waitForTimeout(3000);
+                throw new RuntimeException("Botón aprobar nunca se habilitó, página refrescada");
+            }
+
+            System.out.println(">>> Click botón aprobar");
+            btnAprobar.click(new Locator.ClickOptions().setForce(true));
 
             System.out.println(">>> Esperando volver a la tabla");
 
@@ -268,6 +294,12 @@ public class AprobacionComunicacionesPage {
         catch (Exception e) {
 
             System.out.println("❌ Error aprobando fila: " + e.getMessage());
+
+            // Intentar cerrar cualquier estado parcial (modal, iframe abierto, etc.)
+            try {
+                page.keyboard().press("Escape");
+                page.waitForTimeout(1000);
+            } catch (Exception ignored) {}
 
             return false;
         }
@@ -288,8 +320,13 @@ public class AprobacionComunicacionesPage {
 
     public void esperarGrid() {
 
-        // Esperar el panel del grid (siempre presente, incluso si está vacío)
-        page.waitForSelector("#BPM_ALL_TASKS-panel");
+        // Esperar el panel del grid — ATTACHED acepta el elemento aunque esté oculto
+        // (cuando la app no está estable el panel existe en DOM pero no está visible)
+        // Si tampoco está en DOM, se propaga el error para que el runner recupere la bandeja
+        page.waitForSelector("#BPM_ALL_TASKS-panel",
+                new Page.WaitForSelectorOptions()
+                        .setState(WaitForSelectorState.ATTACHED)
+                        .setTimeout(15000));
 
         // Esperar filas con timeout corto — si no hay filas la bandeja está vacía, lo cual es válido
         try {

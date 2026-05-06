@@ -16,7 +16,6 @@ public class EmailNotifier {
             String fechaInicio,
             String fechaFin,
             int aprobadas,
-            int reintentos,
             int procesadas,
             String duracion,
             String estado,
@@ -46,7 +45,6 @@ public class EmailNotifier {
         String otrosSection = buildOtrosCodigosSection(otrosCodigos);
 
         html = html
-                .replace("{{REINTENTOS}}",          String.valueOf(reintentos))
                 .replace("{{PROCESADAS}}",           String.valueOf(procesadas))
                 .replace("{{DURACION}}",             duracion)
                 .replace("{{FECHA_INICIO}}",         fechaInicio)

@@ -10,6 +10,7 @@ import com.fdymain.fid.utils.EmailNotifier;
 import com.fdymain.fid.utils.ResultadoExport;
 import com.fdymain.fid.utils.WhatsAppNotifier;
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.LoadState;
 import org.junit.jupiter.api.*;
 
 import java.time.Instant;
@@ -30,7 +31,6 @@ public class AprobacionComunicacionesTest {
     private ExcelManager excelManager;
 
     private int aprobadas  = 0;
-    private int reintentos = 0;
     private int procesadas = 0;
 
     private Map<String, Integer> otrosCodigos = new LinkedHashMap<>();
@@ -130,9 +130,25 @@ public class AprobacionComunicacionesTest {
             aprobPage.navegarBandeja();
             aprobPage.irUltimaPagina();
 
+            int fallosConsecutivos = 0;
+            final int MAX_FALLOS_CONSECUTIVOS = 2;
+
             while (true) {
 
-                aprobPage.esperarGrid();
+                try {
+                    aprobPage.esperarGrid();
+                } catch (com.microsoft.playwright.TimeoutError e) {
+                    log("App inestable: grid no disponible — esperando y regresando a bandeja...");
+                    page.waitForTimeout(5000);
+                    try {
+                        aprobPage.navegarBandeja();
+                        aprobPage.irUltimaPagina();
+                    } catch (Exception ex) {
+                        log("No se pudo recuperar la bandeja: " + ex.getMessage());
+                        break;
+                    }
+                    continue;
+                }
 
                 Locator fila500 = aprobPage.buscarFilaPorIdProceso("500");
 
@@ -150,20 +166,27 @@ public class AprobacionComunicacionesTest {
 
                     if (aprobado) {
                         aprobadas++;
+                        fallosConsecutivos = 0;
                     } else {
-                        reintentos++;
+                        fallosConsecutivos++;
                     }
 
-                    datos.put("estado",
-                            aprobado
-                                    ? "aprobado"
-                                    : "falló en la aprobación, revise");
-
-                    excelManager.guardarRegistro(datos);
-
-                    log("Registro guardado en Excel");
-
                     if (!aprobado) {
+
+                        if (fallosConsecutivos >= MAX_FALLOS_CONSECUTIVOS) {
+                            log("Demasiados fallos consecutivos — refrescando página y reiniciando flujo");
+                            fallosConsecutivos = 0;
+                            try {
+                                page.keyboard().press("F5");
+                                page.waitForLoadState(LoadState.NETWORKIDLE);
+                                page.waitForTimeout(3000);
+                                aprobPage.navegarBandeja();
+                                aprobPage.irUltimaPagina();
+                            } catch (Exception ex) {
+                                log("Error al refrescar/reentrar a bandeja: " + ex.getMessage());
+                            }
+                            continue;
+                        }
 
                         log("Fallo la aprobación → regresando a bandeja");
                         aprobPage.navegarBandeja();
@@ -207,7 +230,6 @@ public class AprobacionComunicacionesTest {
                         fechaInicio,
                         obtenerFecha(),
                         aprobadas,
-                        reintentos,
                         procesadas,
                         calcularDuracion(),
                         "EXITOSO",
@@ -224,7 +246,6 @@ public class AprobacionComunicacionesTest {
                 WhatsAppNotifier.enviarResultadoRobot(
                         obtenerFecha(),
                         procesadas,
-                        reintentos,
                         calcularDuracion()
                 );
 
@@ -241,7 +262,6 @@ public class AprobacionComunicacionesTest {
                         fechaInicio,
                         obtenerFecha(),
                         aprobadas,
-                        reintentos,
                         procesadas,
                         calcularDuracion(),
                         "EXITOSO",
@@ -252,8 +272,6 @@ public class AprobacionComunicacionesTest {
 
                 log("No se pudo enviar email: " + e.getMessage());
             }
-
-            log("Excel actualizado: " + excelManager.getExcelPath().toAbsolutePath());
 
         } catch (Exception e) {
 
@@ -310,7 +328,6 @@ public class AprobacionComunicacionesTest {
             WhatsAppNotifier.enviarResultadoRobot(
                     obtenerFecha(),
                     procesadas,
-                    reintentos + 1,
                     calcularDuracion()
             );
 
@@ -325,7 +342,6 @@ public class AprobacionComunicacionesTest {
                     fechaInicio != null ? fechaInicio : obtenerFecha(),
                     obtenerFecha(),
                     aprobadas,
-                    reintentos + 1,
                     procesadas,
                     calcularDuracion(),
                     "CON ERRORES",
@@ -343,7 +359,6 @@ public class AprobacionComunicacionesTest {
                     fechaInicio != null ? fechaInicio : obtenerFecha(),
                     obtenerFecha(),
                     aprobadas,
-                    reintentos + 1,
                     procesadas,
                     calcularDuracion(),
                     "CON ERRORES",

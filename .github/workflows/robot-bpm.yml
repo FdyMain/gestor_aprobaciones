@@ -153,7 +153,6 @@ jobs:
           else
             echo "ROBOT_ESTADO=SIN DATOS"    >> $GITHUB_ENV
             echo "ROBOT_APROBADAS=0"         >> $GITHUB_ENV
-            echo "ROBOT_REINTENTOS=0"        >> $GITHUB_ENV
             echo "ROBOT_PROCESADAS=0"        >> $GITHUB_ENV
             echo "ROBOT_DURACION=N/A"        >> $GITHUB_ENV
             echo "ROBOT_FECHAINICIO=N/A"     >> $GITHUB_ENV
@@ -168,7 +167,6 @@ jobs:
         if: always()
         run: |
           cp .github/email-template.html email-final.html
-          sed -i "s|{{REINTENTOS}}|${ROBOT_REINTENTOS}|g"    email-final.html
           sed -i "s|{{PROCESADAS}}|${ROBOT_PROCESADAS}|g"    email-final.html
           sed -i "s|{{DURACION}}|${ROBOT_DURACION}|g"        email-final.html
           sed -i "s|{{FECHA_INICIO}}|${ROBOT_FECHAINICIO}|g" email-final.html

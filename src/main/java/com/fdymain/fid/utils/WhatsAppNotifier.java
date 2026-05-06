@@ -12,7 +12,6 @@ public class WhatsAppNotifier {
     public static void enviarResultadoRobot(
             String fecha,
             int procesadas,
-            int reintentos,
             String duracion) {
 
         try {
@@ -60,7 +59,6 @@ public class WhatsAppNotifier {
                             + "\"parameters\":["
                             + "{ \"type\":\"text\", \"parameter_name\":\"fecha\", \"text\":\"" + fecha + "\" },"
                             + "{ \"type\":\"text\", \"parameter_name\":\"procesadas\", \"text\":\"" + procesadas + "\" },"
-                            + "{ \"type\":\"text\", \"parameter_name\":\"reintentos\", \"text\":\"" + reintentos + "\" },"
                             + "{ \"type\":\"text\", \"parameter_name\":\"duracion\", \"text\":\"" + duracion + "\" }"
                             + "]"
                             + "}"
